@@ -1,5 +1,7 @@
 from datetime import date
-from models.pedido import Cliente,Pedido,List
+from schemas.ficha import Ficha
+from schemas.pedido import Pedido
+from schemas.cliente import Cliente
 
 
 # Simulando um banco de dados em memória
