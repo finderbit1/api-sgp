@@ -1,4 +1,5 @@
 from datetime import date
+from typing import List
 from schemas.ficha import Ficha
 from schemas.pedido import Pedido
 from schemas.cliente import Cliente
