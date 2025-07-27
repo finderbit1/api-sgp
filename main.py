@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from models.pedido import *
+from schemas.ficha import Ficha
+from schemas.pedido import Pedido
+from schemas.cliente import Cliente
 from database.db_fake import *
 app = FastAPI()
 
