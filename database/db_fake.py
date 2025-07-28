@@ -1,35 +1,59 @@
 from datetime import date
 from typing import List
 from schemas.ficha import Ficha
-from schemas.pedido import Pedido
+from schemas.pedido import FichaPedido,Prioridade
 from schemas.cliente import Cliente
+from schemas.payments import Payments
+from schemas.envio import Envio
 
+
+
+ # ajuste conforme seu projeto
 
 # Simulando um banco de dados em memória
-pedidos_fake: List[Pedido] = [
-    Pedido(
+pedidos_fake: List[FichaPedido] = [
+    FichaPedido(
         numero="001",
         cliente="Mateus José da Silva",
-        data=str(date.today().strftime("%d/%m/%Y")),
+        telefone="27999999999",
+        cidade="Colatina",
+        data_entrada=str(date.today().strftime("%d/%m/%Y")),
+        data_entrega=str(date.today().strftime("%d/%m/%Y")),
         status="pendente",
-        prioridade=True,
+        prioridade=Prioridade.ALTA,
         financeiro=False,
         sublimação=False,
         costura=False,
-        expedicao=False
+        expedicao=False,
+        observacao="Urgente",
+        tipo_pagamento="PIX",
+        obs_pagamento="Pago antecipado",
+        valor_total="150.00",
+        valor_frete="20.00",
+        items=[]
     ),
-    Pedido(
+    FichaPedido(
         numero="002",
         cliente="Carlos Souza",
-        data=str(date.today().strftime("%d/%m/%Y")),
+        telefone="27988888888",
+        cidade="Vitória",
+        data_entrada=str(date.today().strftime("%d/%m/%Y")),
+        data_entrega=str(date.today().strftime("%d/%m/%Y")),
         status="pronto",
-        prioridade=False,
+        prioridade=Prioridade.ALTA,
         financeiro=True,
         sublimação=True,
         costura=True,
-        expedicao=True
-    )
+        expedicao=True,
+        observacao="Entrega no balcão",
+        tipo_pagamento="Dinheiro",
+        obs_pagamento="A receber",
+        valor_total="200.00",
+        valor_frete="30.00",
+        items=[]
+    ),
 ]
+
 
 clientes: List[Cliente]= [
     Cliente(
@@ -48,6 +72,23 @@ clientes: List[Cliente]= [
         estado="es",
         telefone="27 000900071"
     ),
+]
+
+
+tiposPagamentos: List[Payments] = [
+    Payments(id=1,name="PIX"),
+    Payments(id=2,name="Link Cartão"),
+    Payments(id=3,name="Boleto"),
+    Payments(id=4,name="Dinheiro"),
+]
+
+
+Transportadoras: List[Ellipsis] = [
+    Envio(id=1,name="Correios",value=40.00),
+    Envio(id=2,name="Viação Aguia Branca",value=40.00),
+    Envio(id=3,name="Viação Pretti",value=50.00),
+    Envio(id=4,name="Flex",),
+    Envio(id=5,name="Retirada"),
 ]
 
 
