@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
-from schemas.ficha import Ficha
-from schemas.pedido import FichaPedido
-from schemas.cliente import Cliente
-from schemas.payments import Payments
-from schemas.envio import Envio
-from database.db_fake import *
+from base import engine,init_db
+
+
+# Routers
+from pedidos.router import router as pedidos_router
+from clientes.router import router as clientes_router
+from pagamentos.router import router as pagamentos_router
+from envios.router import router as envios_router
+
 
 app = FastAPI()
 
@@ -17,31 +19,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(pedidos_router)
+app.include_router(clientes_router)
+app.include_router(pagamentos_router)
+app.include_router(envios_router)
 
-@app.get("/pedidos", response_model=List[FichaPedido])
-def listar_pedidos():
-    return pedidos_fake
-
-@app.post("/pedidos")
-def criar_pedido(ficha:Ficha):
-    ficha_dict = ficha.dict()
-    print(ficha_dict)
-    return ficha_dict
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 
-# Tipos de Pagamento
-@app.get("/tipos-pagamentos", response_model=List[Payments])
-def listar_pedidos():
-    return tiposPagamentos
-
-# Formas de Envio
-@app.get("/tipos-envios", response_model=List[Envio])
-def listar_formas_envios():
-    return Transportadoras
-
-
-
-# Clientes
-@app.get("/clientes",response_model=List[Cliente])
-def listar_clientes():
-    return clientes
