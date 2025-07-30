@@ -10,3 +10,11 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Dependência para injetar sessão nas rotas
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

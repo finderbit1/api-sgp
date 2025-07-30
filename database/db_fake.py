@@ -1,12 +1,10 @@
 from datetime import date
 from typing import List
-from schemas.ficha import Ficha
-from schemas.pedido import FichaPedido,Prioridade
-from schemas.cliente import Cliente
-from schemas.payments import Payments
-from schemas.envio import Envio
 
-
+from pedidos.schema import FichaPedido,Prioridade
+from pagamentos.schema import Payments
+from clientes.schema import Cliente
+from envios.schema import Envio
 
  # ajuste conforme seu projeto
 
@@ -40,7 +38,7 @@ pedidos_fake: List[FichaPedido] = [
         data_entrada=str(date.today().strftime("%d/%m/%Y")),
         data_entrega=str(date.today().strftime("%d/%m/%Y")),
         status="pronto",
-        prioridade=Prioridade.ALTA,
+        prioridade=Prioridade.NORMAL,
         financeiro=True,
         sublimação=True,
         costura=True,
