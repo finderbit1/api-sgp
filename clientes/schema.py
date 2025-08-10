@@ -8,12 +8,3 @@ class Cliente(BaseModel):
     estado: str
     telefone: str
     
-
-# Cliente(
-#     id=0,
-#     nome="Mateus",
-#     cep="29701340",
-#     cidade="colatina",
-#     estado="es",
-#     telefone="27 995900071"
-# ),
