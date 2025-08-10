@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
 from fastapi.middleware.cors import CORSMiddleware
 from base import engine,init_db
 
@@ -10,7 +12,16 @@ from pagamentos.router import router as pagamentos_router
 from envios.router import router as envios_router
 
 
-app = FastAPI()
+
+
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield init_db()
+
+app = FastAPI(lifespan=lifespan)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,8 +35,8 @@ app.include_router(clientes_router)
 app.include_router(pagamentos_router)
 app.include_router(envios_router)
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
+# @app.on_event("startup")
+# def on_startup():
+    
 
 
