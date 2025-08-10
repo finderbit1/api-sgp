@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from enum import IntEnum
+from producoes import ItemProducao
 
 class Prioridade(IntEnum):
-    NORMAL = 0
-    ALTA = 1
+    NORMAL = "0"
+    ALTA = "1"
 
 class FichaPedido(BaseModel):
     numero: str
@@ -24,4 +25,7 @@ class FichaPedido(BaseModel):
     obs_pagamento: Optional[str]
     valor_total: Optional[str]
     valor_frete: Optional[str]
-    items: List = []
+    items: List[ItemProducao] = []
+
+
+

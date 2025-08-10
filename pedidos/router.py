@@ -9,8 +9,10 @@ router = APIRouter(prefix="/pedidos",tags=["Pedidos"])
 def listar_pedidos():
     return pedidos_fake
 
+
 @router.post("/")
 def criar_pedido(ficha:FichaPedido):
     ficha_dict = ficha.dict()
+    
     print(ficha_dict)
     return ficha_dict
