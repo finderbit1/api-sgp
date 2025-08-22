@@ -1,49 +1,66 @@
-from pydantic import BaseModel, Field
-from typing import Literal, Union,Optional
-from typing_extensions import Annotated
+from sqlmodel import SQLModel, Field
+from typing import Literal, Union, Optional
 
 
-class AcabamentoModel(BaseModel):
+class AcabamentoModel(SQLModel):
     overloque: bool = False
     elastico: bool = False
     ilhos: bool = False
 
 
-class PainelModel(BaseModel):
-    tipoProducao: Literal["painel"]
-    descricao: Optional[str] = ''
+class PainelModel(SQLModel):
+    id: Optional[int] = None
+    tipo_producao: Literal["painel"]
+    descricao: str
     largura: Optional[str] = ''
     altura: Optional[str] = ''
-    imagem:str
+    metro_quadrado: Optional[str] = ''
+    imagem: Optional[str] = None
     vendedor: Optional[str] = ''
     designer: Optional[str] = ''
     tecido: Optional[str] = ''
-    acabamento: AcabamentoModel = AcabamentoModel()
+    acabamento: Optional[str] = ''
     emenda: Optional[str] = 'sem-emenda'
     observacao: Optional[str] = ''
-    valorPainel: Optional[str] = ''
-    ilhosQtd: Optional[str] = ''
-    ilhosValorUnitario: Optional[str] = ''
-    ilhosDistancia: Optional[str] = ''
+    valor_unitario: Optional[str] = ''
 
 
-class TotemModel(BaseModel):
-    tipoProducao: Literal["totem"]
+class TotemModel(SQLModel):
+    id: Optional[int] = None
+    tipo_producao: Literal["totem"]
     descricao: str
+    largura: Optional[str] = ""
     altura: Optional[str] = ""
-    material: Optional[str] = ""
-    valor: Optional[str] = ""
+    metro_quadrado: Optional[str] = ""
+    vendedor: Optional[str] = ""
+    designer: Optional[str] = ""
+    tecido: Optional[str] = ""
+    acabamento: Optional[str] = ""
+    emenda: Optional[str] = ""
+    observacao: Optional[str] = ""
+    valor_unitario: Optional[str] = ""
+    ilhos_qtd: Optional[int] = None
+    ilhos_valor_unitario: Optional[str] = ""
+    ilhos_distancia: Optional[str] = ""
+    imagem: Optional[str] = None
 
 
-class LonaModel(BaseModel):
-    tipoProducao: Literal["lona"]
+class LonaModel(SQLModel):
+    id: Optional[int] = None
+    tipo_producao: Literal["lona"]
     descricao: str
-    metragem: Optional[str] = ""
-    gramatura: Optional[str] = ""
+    largura: Optional[str] = ""
+    altura: Optional[str] = ""
+    metro_quadrado: Optional[str] = ""
+    vendedor: Optional[str] = ""
+    designer: Optional[str] = ""
+    tecido: Optional[str] = ""
+    acabamento: Optional[str] = ""
+    emenda: Optional[str] = ""
+    observacao: Optional[str] = ""
+    valor_unitario: Optional[str] = ""
+    imagem: Optional[str] = None
 
 
-# UNION DISCRIMINADA (baseada em tipoProducao)
-ItemProducao = Annotated[
-    Union[PainelModel, TotemModel, LonaModel],
-    Field(discriminator="tipoProducao")
-]
+# UNION DISCRIMINADA (baseada em tipo_producao)
+ItemProducao = Union[PainelModel, TotemModel, LonaModel]
