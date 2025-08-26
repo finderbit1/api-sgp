@@ -1,223 +1,188 @@
-<<<<<<< HEAD
-# API Sistema de Fichas
+# API Sistema de Gestão de Produção (SGP)
 
-API completa para gerenciamento de sistema de fichas de produção, incluindo clientes, pedidos, pagamentos e envios.
-=======
-# API SGP - Sistema de Gestão de Pacientes
+API para gerenciamento de pedidos de produção gráfica, desenvolvida com FastAPI e SQLModel.
 
-API RESTful desenvolvida com FastAPI para o agendamento de consultas e gestão de pacientes no setor de saúde.
+## 🚀 Características
 
-## 🚀 Funcionalidades
+- **FastAPI**: Framework moderno e rápido para APIs
+- **SQLModel**: ORM moderno baseado em Pydantic e SQLAlchemy
+- **SQLite**: Banco de dados simples e eficiente
+- **Validação automática**: Schemas Pydantic para validação de dados
+- **Documentação automática**: Swagger UI em `/docs`
 
-- **Clientes**: Cadastro e gerenciamento de pacientes.
-- **Consultas**: Agendamento e visualização de compromissos médicos.
-- **Envios**: Tipos de envio disponíveis para notificações.
-- **Pagamentos**: Métodos de pagamento para serviços médicos.
+## 📋 Estrutura do Projeto
 
-## 🛠 Tecnologias Utilizadas
+```
+api-sgp/
+├── pedidos/           # Módulo de pedidos
+│   ├── schema.py      # Schemas SQLModel
+│   └── router.py      # Rotas da API
+├── database/          # Configuração do banco
+│   └── database.py    # Engine e sessões SQLModel
+├── main.py            # Aplicação principal
+├── base.py            # Configurações base
+└── config.py          # Configurações da aplicação
+```
 
-- **Backend**: FastAPI
-- **Banco de Dados**: SQLModel com SQLite
-- **ORM**: SQLAlchemy
-- **Testes**: pytest, FastAPI TestClient
-- **Documentação**: Swagger UI integrada
+## 🛠️ Instalação
 
-## 📦 Instalação
+1. **Clone o repositório**
+```bash
+git clone <url-do-repositorio>
+cd api-sgp
+```
 
-1. Clone o repositório:
+2. **Instale as dependências**
+```bash
+pip install -r requirements.txt
+```
 
-   ```bash
-   git clone https://github.com/finderbit1/api-sgp.git
-   cd api-sgp
-   ```
-
-2. Crie e ative um ambiente virtual:
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Linux/macOS
-   .venv\Scripts\activate     # Windows
-   ```
-
-3. Instale as dependências:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## 🏃‍♂️ Execução
-
-Para rodar a aplicação localmente:
-
+3. **Execute a aplicação**
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Acesse a documentação interativa em: [http://localhost:8000/docs](http://localhost:8000/docs)
+## 📚 Endpoints da API
+
+### Pedidos
+
+#### POST `/api/v1/pedidos/`
+Cria um novo pedido.
+
+**Exemplo de JSON:**
+```json
+{
+  "numero": "1",
+  "data_entrada": "2024-01-15",
+  "data_entrega": "2024-01-20",
+  "observacao": "Pedido urgente para evento",
+  "prioridade": "ALTA",
+  "status": "pendente",
+  
+  "cliente": "João Silva",
+  "telefone_cliente": "(11) 99999-9999",
+  "cidade_cliente": "São Paulo",
+  
+  "valor_total": "450.00",
+  "valor_frete": "25.00",
+  "valor_itens": "425.00",
+  "tipo_pagamento": "1",
+  "obs_pagamento": "2x sem juros",
+  
+  "forma_envio": "Sedex",
+  "forma_envio_id": 1,
+  
+  "items": [
+    {
+      "id": 1,
+      "tipo_producao": "painel",
+      "descricao": "Painel de Fundo para Evento",
+      "largura": "3.00",
+      "altura": "2.50",
+      "metro_quadrado": "7.50",
+      "vendedor": "Maria Santos",
+      "designer": "Carlos Lima",
+      "tecido": "Banner",
+      "acabamento": {
+        "overloque": true,
+        "elastico": false,
+        "ilhos": true
+      },
+      "emenda": "sem-emenda",
+      "observacao": "Impressão em alta resolução",
+      "valor_unitario": "250.00",
+      "imagem": "data:image/jpeg;base64,..."
+    }
+  ],
+  
+  "financeiro": false,
+  "sublimacao": false,
+  "costura": false,
+  "expedicao": false
+}
+```
+
+#### GET `/api/v1/pedidos/`
+Lista todos os pedidos.
+
+#### GET `/api/v1/pedidos/{pedido_id}`
+Obtém um pedido específico por ID.
+
+#### PATCH `/api/v1/pedidos/{pedido_id}`
+Atualiza um pedido existente (aceita atualizações parciais).
+
+#### DELETE `/api/v1/pedidos/{pedido_id}`
+Deleta um pedido.
+
+#### GET `/api/v1/pedidos/status/{status}`
+Lista pedidos por status específico.
+
+## 🗄️ Estrutura do Banco
+
+### Tabela `pedidos`
+- **id**: Chave primária
+- **numero**: Número do pedido
+- **data_entrada**: Data de entrada
+- **data_entrega**: Data de entrega
+- **observacao**: Observações do pedido
+- **prioridade**: NORMAL ou ALTA
+- **status**: pendente, em_producao, pronto, entregue, cancelado
+- **cliente**: Nome do cliente
+- **telefone_cliente**: Telefone do cliente
+- **cidade_cliente**: Cidade do cliente
+- **valor_total**: Valor total do pedido
+- **valor_frete**: Valor do frete
+- **valor_itens**: Valor dos itens
+- **tipo_pagamento**: Tipo de pagamento
+- **obs_pagamento**: Observações do pagamento
+- **forma_envio**: Forma de envio
+- **forma_envio_id**: ID da forma de envio
+- **financeiro**: Status financeiro
+- **sublimacao**: Status de sublimação
+- **costura**: Status de costura
+- **expedicao**: Status de expedição
+- **items**: JSON com os itens do pedido
+- **data_criacao**: Data de criação
+- **ultima_atualizacao**: Data da última atualização
 
 ## 🧪 Testes
 
-Para rodar os testes automatizados:
+Execute o script de teste para verificar se a API está funcionando:
 
 ```bash
-pytest
+python test_pedido.py
 ```
-
-## 📚 Estrutura de Diretórios
-
-```
-api-sgp/
-├── clientes/          # Endpoints e modelos de clientes
-├── consultas/         # Endpoints e modelos de consultas
-├── envios/            # Tipos de envio
-├── pagamentos/        # Métodos de pagamento
-├── database/          # Configuração do banco de dados
-├── tests/             # Testes automatizados
-├── main.py            # Ponto de entrada da aplicação
-├── models.py          # Definições dos modelos de dados
-├── base.py            # Configurações base
-├── requirements.txt   # Dependências do projeto
-└── README.md          # Este arquivo
-```
-
-## 📄 Licença
-
-Este projeto está licenciado sob a Licença MIT. Consulte o arquivo LICENSE para mais detalhes.
-
-## 📞 Contato
-
-Para dúvidas ou contribuições, entre em contato através do [GitHub Issues](https://github.com/finderbit1/api-sgp/issues) ou envie um e-mail para [mateuspython3010@gmail.com](mailto:mateuspython3010@gmail.com).
->>>>>>> a90dc900978f6f3f20e86eeb5346dfb5c748d938
-
-## 🚀 Funcionalidades
-
-- **Clientes**: CRUD completo para gerenciamento de clientes
-- **Pedidos**: CRUD completo para fichas de pedidos
-- **Pagamentos**: CRUD completo para tipos de pagamento
-- **Envios**: CRUD completo para tipos de envio
-- **Admin**: CRUD completo para usuários administradores
-- **Produção**: Sistema de itens de produção (painéis, totens, lonas)
-
-## 🛠️ Tecnologias
-
-- **FastAPI**: Framework web moderno e rápido
-- **SQLModel**: ORM moderno baseado em Pydantic e SQLAlchemy
-- **SQLite**: Banco de dados (configurável para outros)
-- **Pydantic**: Validação de dados
-- **Python 3.13+**: Linguagem de programação
-
-## 📋 Pré-requisitos
-
-- Python 3.13 ou superior
-- uv (gerenciador de pacotes Python)
-
-## 🔧 Instalação
-
-1. Clone o repositório:
-```bash
-git clone <url-do-repositorio>
-cd api-sistemas-fichas
-```
-
-2. Instale as dependências:
-```bash
-uv sync
-```
-
-3. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
-
-4. Execute a aplicação:
-```bash
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## 📚 Endpoints da API
-
-### Clientes
-- `POST /api/v1/clientes/` - Criar cliente
-- `GET /api/v1/clientes/` - Listar clientes
-- `GET /api/v1/clientes/{id}` - Obter cliente específico
-- `PATCH /api/v1/clientes/{id}` - Atualizar cliente
-- `DELETE /api/v1/clientes/{id}` - Deletar cliente
-
-### Pedidos
-- `POST /api/v1/pedidos/` - Criar pedido
-- `GET /api/v1/pedidos/` - Listar pedidos
-- `GET /api/v1/pedidos/{id}` - Obter pedido específico
-- `PATCH /api/v1/pedidos/{id}` - Atualizar pedido
-- `DELETE /api/v1/pedidos/{id}` - Deletar pedido
-
-### Pagamentos
-- `POST /api/v1/tipos-pagamentos/` - Criar tipo de pagamento
-- `GET /api/v1/tipos-pagamentos/` - Listar tipos de pagamento
-- `GET /api/v1/tipos-pagamentos/{id}` - Obter tipo específico
-- `PATCH /api/v1/tipos-pagamentos/{id}` - Atualizar tipo
-- `DELETE /api/v1/tipos-pagamentos/{id}` - Deletar tipo
-
-### Envios
-- `POST /api/v1/tipos-envios/` - Criar tipo de envio
-- `GET /api/v1/tipos-envios/` - Listar tipos de envio
-- `GET /api/v1/tipos-envios/{id}` - Obter tipo específico
-- `PATCH /api/v1/tipos-envios/{id}` - Atualizar tipo
-- `DELETE /api/v1/tipos-envios/{id}` - Deletar tipo
-
-### Admin
-- `POST /api/v1/admin/users/` - Criar usuário
-- `GET /api/v1/admin/users/` - Listar usuários
-- `GET /api/v1/admin/users/{id}` - Obter usuário específico
-- `PATCH /api/v1/admin/users/{id}` - Atualizar usuário
-- `DELETE /api/v1/admin/users/{id}` - Deletar usuário
 
 ## 📖 Documentação da API
 
-Após executar a aplicação, acesse:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+Acesse a documentação interativa da API em:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
-## 🧪 Testes
+## 🔧 Configuração
 
-Execute os testes com:
-```bash
-uv run pytest
-```
+As configurações podem ser alteradas no arquivo `config.py` ou através de variáveis de ambiente:
 
-## 📁 Estrutura do Projeto
+- `DATABASE_URL`: URL do banco de dados
+- `API_V1_STR`: Prefixo da API
+- `PROJECT_NAME`: Nome do projeto
+- `VERSION`: Versão da API
+- `BACKEND_CORS_ORIGINS`: Origens permitidas para CORS
 
-```
-api-sistemas-fichas/
-├── admin/           # Módulo de administração
-├── clientes/        # Módulo de clientes
-├── database/        # Configurações de banco
-├── envios/          # Módulo de tipos de envio
-├── pagamentos/      # Módulo de tipos de pagamento
-├── pedidos/         # Módulo de pedidos
-├── tests/           # Testes automatizados
-├── main.py          # Arquivo principal da aplicação
-├── models.py        # Modelos do banco de dados
-├── base.py          # Configurações base
-├── config.py        # Configurações centralizadas
-└── producoes.py     # Modelos de produção
-```
+## 🚀 Melhorias Implementadas
 
-## 🔒 Segurança
+- ✅ **SQLModel apenas**: Removida dependência do SQLAlchemy
+- ✅ **Schemas modernos**: Estrutura Pydantic atualizada
+- ✅ **Validação robusta**: Enums para status e prioridade
+- ✅ **JSON nativo**: Items armazenados como JSON no banco
+- ✅ **Tratamento de erros**: Try/catch com rollback
+- ✅ **Documentação**: Docstrings em todas as funções
+- ✅ **Testes**: Script de teste completo
 
-- Configure adequadamente as variáveis de ambiente
-- Em produção, restrinja o CORS para domínios específicos
-- Gere uma chave secreta única para produção
-- Implemente autenticação JWT (próximas versões)
+## 📝 Notas
 
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
+- A API agora usa apenas SQLModel para ORM
+- Os items são armazenados como JSON no banco de dados
+- Validação automática de todos os campos
+- Suporte a diferentes tipos de produção (painel, totem, lona)
+- Timestamps automáticos de criação e atualização
