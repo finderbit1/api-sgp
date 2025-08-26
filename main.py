@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
-from base import engine, init_db
+from base import create_db_and_tables
 from config import settings
 
 # Routers
@@ -14,7 +14,7 @@ from admin.router import router as admin_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield init_db()
+    yield create_db_and_tables()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
