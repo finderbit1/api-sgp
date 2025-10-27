@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,6 +8,7 @@ from config import settings
 # Routers
 from auth.router import router as auth_router
 from pedidos.router import router as pedidos_router
+from pedidos.realtime import orders_notifier
 from clientes.router import router as clientes_router
 from pagamentos.router import router as pagamentos_router
 from envios.router import router as envios_router
@@ -68,5 +69,17 @@ async def health():
         "message": "API is running",
         "version": settings.VERSION
     }
+
+
+@app.websocket("/ws/orders")
+async def orders_websocket(websocket: WebSocket):
+    await orders_notifier.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await orders_notifier.disconnect(websocket)
+    except Exception:
+        await orders_notifier.disconnect(websocket)
     
     

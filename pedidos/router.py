@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from sqlalchemy import text
+from fastapi.encoders import jsonable_encoder
 from base import get_session
 from database.database import engine
 from .schema import Pedido, PedidoCreate, PedidoUpdate, PedidoResponse, ItemPedido, Acabamento
+from .realtime import schedule_broadcast
 from datetime import datetime
 from typing import Any, List, Optional
 import json
@@ -18,6 +20,7 @@ def ensure_order_columns() -> None:
         ('conferencia', "ALTER TABLE pedidos ADD COLUMN conferencia BOOLEAN DEFAULT 0"),
         ('sublimacao_maquina', "ALTER TABLE pedidos ADD COLUMN sublimacao_maquina TEXT"),
         ('sublimacao_data_impressao', "ALTER TABLE pedidos ADD COLUMN sublimacao_data_impressao TEXT"),
+        ('pronto', "ALTER TABLE pedidos ADD COLUMN pronto BOOLEAN DEFAULT 0"),
     )
 
     try:
@@ -33,6 +36,15 @@ def ensure_order_columns() -> None:
 
 
 ensure_order_columns()
+
+
+def broadcast_order_event(event_type: str, pedido: Optional[PedidoResponse] = None, order_id: Optional[int] = None) -> None:
+    message: dict[str, Any] = {"type": event_type}
+    if pedido is not None:
+        message["order"] = jsonable_encoder(pedido)
+    if order_id is not None:
+        message["order_id"] = order_id
+    schedule_broadcast(message)
 
 def normalize_acabamento(acabamento_value: Any) -> Optional[Acabamento]:
     if isinstance(acabamento_value, Acabamento):
@@ -167,7 +179,9 @@ def criar_pedido(pedido: PedidoCreate, session: Session = Depends(get_session)):
         pedido_dict['cidade_cliente'] = cidade
         pedido_dict['estado_cliente'] = estado
         pedido_dict['items'] = json_string_to_items(db_pedido.items or "[]")
-        return PedidoResponse(**pedido_dict)
+        response = PedidoResponse(**pedido_dict)
+        broadcast_order_event("order_created", response)
+        return response
         
     except Exception as e:
         session.rollback()
@@ -278,7 +292,11 @@ def atualizar_pedido(pedido_id: int, pedido_update: PedidoUpdate, session: Sessi
         pedido_dict['cidade_cliente'] = cidade
         pedido_dict['estado_cliente'] = estado
         pedido_dict['items'] = items
-        return PedidoResponse(**pedido_dict)
+        response = PedidoResponse(**pedido_dict)
+        broadcast_order_event("order_updated", response)
+        if any(key in update_data for key in ["financeiro", "conferencia", "sublimacao", "costura", "expedicao", "pronto", "status"]):
+            broadcast_order_event("order_status_updated", response)
+        return response
         
     except HTTPException:
         raise
@@ -298,6 +316,7 @@ def deletar_pedido(pedido_id: int, session: Session = Depends(get_session)):
         
         session.delete(db_pedido)
         session.commit()
+        broadcast_order_event("order_deleted", order_id=pedido_id)
         return {"message": "Pedido deletado com sucesso"}
         
     except HTTPException:
