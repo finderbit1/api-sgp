@@ -3,25 +3,26 @@ from typing import Optional
 from sqlmodel import Field, SQLModel
 
 
-class EnvioBase(SQLModel):
+class DesignerBase(SQLModel):
     nome: str
-    valor: Optional[float] = None
-    prazo_dias: int = 0
+    email: Optional[str] = None
+    telefone: Optional[str] = None
     ativo: bool = True
     observacao: Optional[str] = None
 
 
-class Envio(EnvioBase, table=True):
+class Designer(DesignerBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True, index=True)
 
 
-class EnvioCreate(EnvioBase):
+class DesignerCreate(DesignerBase):
     pass
 
 
-class EnvioUpdate(SQLModel):
+class DesignerUpdate(SQLModel):
     nome: Optional[str] = None
-    valor: Optional[float] = None
-    prazo_dias: Optional[int] = None
+    email: Optional[str] = None
+    telefone: Optional[str] = None
     ativo: Optional[bool] = None
     observacao: Optional[str] = None
+

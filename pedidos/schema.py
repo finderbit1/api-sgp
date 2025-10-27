@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Field
 from typing import List, Optional
 from enum import Enum
 from datetime import datetime
-from pydantic import validator
+from pydantic import validator, ConfigDict
 
 class Prioridade(str, Enum):
     NORMAL = "NORMAL"
@@ -20,59 +20,101 @@ class Acabamento(SQLModel):
     elastico: bool = False
     ilhos: bool = False
 
+
 class ItemPedido(SQLModel):
+    model_config = ConfigDict(extra="allow")
+
     id: Optional[int] = None
-    tipo_producao: str  # "painel", "totem", "lona", etc.
-    descricao: str
-    largura: str
-    altura: str
-    metro_quadrado: str
-    vendedor: str
-    designer: str
-    tecido: str
-    acabamento: Acabamento
-    emenda: str  # "sem-emenda" ou "com-emenda"
+    tipo_producao: Optional[str] = None  # "painel", "totem", "lona", etc.
+    descricao: Optional[str] = None
+    largura: Optional[str] = None
+    altura: Optional[str] = None
+    metro_quadrado: Optional[str] = None
+    vendedor: Optional[str] = None
+    designer: Optional[str] = None
+    tecido: Optional[str] = None
+    acabamento: Optional[Acabamento] = None
+    emenda: Optional[str] = None  # "sem-emenda" ou "com-emenda"
     observacao: Optional[str] = None
-    valor_unitario: str
+    valor_unitario: Optional[str] = None
     imagem: Optional[str] = None
-    
-    # Campos específicos para totem
+
+    # Campos adicionais manipulados pelo frontend
+    tipo_acabamento: Optional[str] = None
+    quantidade_ilhos: Optional[str] = None
+    espaco_ilhos: Optional[str] = None
+    valor_ilhos: Optional[str] = None
     ilhos_qtd: Optional[str] = None
     ilhos_valor_unitario: Optional[str] = None
     ilhos_distancia: Optional[str] = None
 
+    quantidade_cordinha: Optional[str] = None
+    espaco_cordinha: Optional[str] = None
+    valor_cordinha: Optional[str] = None
+
+    quantidade_paineis: Optional[str] = None
+    quantidade_totem: Optional[str] = None
+    quantidade_lona: Optional[str] = None
+    quantidade_adesivo: Optional[str] = None
+
+    valor_totem: Optional[str] = None
+    outros_valores_totem: Optional[str] = None
+    valor_lona: Optional[str] = None
+    outros_valores_lona: Optional[str] = None
+    valor_adesivo: Optional[str] = None
+    outros_valores_adesivo: Optional[str] = None
+
+    tipo_adesivo: Optional[str] = None
+    acabamento_lona: Optional[str] = None
+    acabamento_totem: Optional[str] = None
+    acabamento_totem_outro: Optional[str] = None
+
+    emenda_qtd: Optional[str] = None
+    terceirizado: Optional[bool] = None
+    ziper: Optional[bool] = None
+    cordinha_extra: Optional[bool] = None
+    alcinha: Optional[bool] = None
+    toalha_pronta: Optional[bool] = None
+
+    outros_valores: Optional[str] = None
+
+
 class PedidoBase(SQLModel):
-    numero: str
+    numero: Optional[str] = Field(default=None)
     data_entrada: str
-    data_entrega: str
+    data_entrega: Optional[str] = Field(default=None)
     observacao: Optional[str] = None
-    prioridade: Prioridade
+    prioridade: Prioridade = Prioridade.NORMAL
     status: Status = Status.PENDENTE
-    
+
     # Dados do cliente
     cliente: str
-    telefone_cliente: str
-    cidade_cliente: str
-    
+    telefone_cliente: Optional[str] = None
+    cidade_cliente: Optional[str] = None
+
     # Valores
-    valor_total: str
-    valor_frete: str
-    valor_itens: str
-    tipo_pagamento: str
+    valor_total: Optional[str] = None
+    valor_frete: Optional[str] = None
+    valor_itens: Optional[str] = None
+    tipo_pagamento: Optional[str] = None
     obs_pagamento: Optional[str] = None
-    
+
     # Envio
-    forma_envio: str
-    forma_envio_id: int
-    
+    forma_envio: Optional[str] = None
+    forma_envio_id: int = 0
+
     # Status de produção
     financeiro: bool = False
+    conferencia: bool = False
     sublimacao: bool = False
     costura: bool = False
     expedicao: bool = False
 
+
 class PedidoCreate(PedidoBase):
-    items: List[ItemPedido]
+    estado_cliente: Optional[str] = None
+    items: List[ItemPedido] = Field(default_factory=list)
+
 
 class PedidoUpdate(SQLModel):
     numero: Optional[str] = None
@@ -81,51 +123,53 @@ class PedidoUpdate(SQLModel):
     observacao: Optional[str] = None
     prioridade: Optional[Prioridade] = None
     status: Optional[Status] = None
-    
+
     # Dados do cliente
     cliente: Optional[str] = None
     telefone_cliente: Optional[str] = None
     cidade_cliente: Optional[str] = None
-    
+    estado_cliente: Optional[str] = None
+
     # Valores
     valor_total: Optional[str] = None
     valor_frete: Optional[str] = None
     valor_itens: Optional[str] = None
     tipo_pagamento: Optional[str] = None
     obs_pagamento: Optional[str] = None
-    
+
     # Envio
     forma_envio: Optional[str] = None
     forma_envio_id: Optional[int] = None
-    
+
     # Status de produção
     financeiro: Optional[bool] = None
+    conferencia: Optional[bool] = None
     sublimacao: Optional[bool] = None
     costura: Optional[bool] = None
     expedicao: Optional[bool] = None
-    
+
     # Items
     items: Optional[List[ItemPedido]] = None
 
+
 class Pedido(PedidoBase, table=True):
     __tablename__ = "pedidos"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     items: Optional[str] = Field(default=None)  # JSON string
     data_criacao: Optional[datetime] = Field(default_factory=datetime.utcnow)
     ultima_atualizacao: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    
+
     @validator('data_criacao', 'ultima_atualizacao', pre=True)
     def parse_datetime(cls, v):
         if isinstance(v, str):
             return datetime.fromisoformat(v.replace('Z', '+00:00'))
         return v
 
+
 class PedidoResponse(PedidoBase):
     id: int
     items: List[ItemPedido]
     data_criacao: datetime
     ultima_atualizacao: datetime
-
-
-
+    estado_cliente: Optional[str] = None

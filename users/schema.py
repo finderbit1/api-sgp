@@ -1,6 +1,15 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import SQLModel
+
+
+class UserRead(SQLModel):
+    id: int
+    username: str
+    is_admin: bool
+    is_active: bool
+    created_at: Optional[datetime] = None
 
 
 class UserCreate(SQLModel):
@@ -15,10 +24,3 @@ class UserUpdate(SQLModel):
     password: Optional[str] = None
     is_admin: Optional[bool] = None
     is_active: Optional[bool] = None
-
-
-class UserResponse(SQLModel):
-    id: int
-    username: str
-    is_admin: bool
-    is_active: bool

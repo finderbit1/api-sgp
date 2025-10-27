@@ -1,12 +1,38 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+from sqlalchemy import text
 from base import get_session
+from database.database import engine
 from .schema import Pedido, PedidoCreate, PedidoUpdate, PedidoResponse, ItemPedido, Acabamento
 from datetime import datetime
-from typing import List
+from typing import Any, List, Optional
 import json
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
+
+STATE_SEPARATOR = "||"
+
+
+def ensure_conferencia_column() -> None:
+    try:
+        with engine.begin() as conn:
+            columns = conn.execute(text("PRAGMA table_info(pedidos)")).fetchall()
+            if not any(col[1] == 'conferencia' for col in columns):
+                conn.execute(text("ALTER TABLE pedidos ADD COLUMN conferencia BOOLEAN DEFAULT 0"))
+    except Exception as exc:
+        # Direitos de escrita podem não estar disponíveis em alguns ambientes; registrar e seguir.
+        print(f"[pedidos] aviso ao garantir coluna conferencia: {exc}")
+
+
+ensure_conferencia_column()
+
+def normalize_acabamento(acabamento_value: Any) -> Optional[Acabamento]:
+    if isinstance(acabamento_value, Acabamento):
+        return acabamento_value
+    if isinstance(acabamento_value, dict):
+        return Acabamento(**acabamento_value)
+    return None
+
 
 def items_to_json_string(items) -> str:
     """Converte lista de items para string JSON"""
@@ -14,16 +40,20 @@ def items_to_json_string(items) -> str:
     for item in items:
         if hasattr(item, 'model_dump'):
             # Se for um objeto SQLModel
-            item_dict = item.model_dump()
+            item_dict = item.model_dump(exclude_none=True, exclude_unset=True)
             # Converter acabamento para dict
-            if hasattr(item, 'acabamento') and item.acabamento:
-                item_dict['acabamento'] = item.acabamento.model_dump()
+            acabamento = getattr(item, 'acabamento', None)
+            if acabamento:
+                item_dict['acabamento'] = normalize_acabamento(acabamento).model_dump(exclude_none=True)
         else:
             # Se já for um dict
             item_dict = item.copy()
             # Converter acabamento para dict se existir
-            if 'acabamento' in item_dict and hasattr(item_dict['acabamento'], 'model_dump'):
-                item_dict['acabamento'] = item_dict['acabamento'].model_dump()
+            acabamento_value = item_dict.get('acabamento')
+            if hasattr(acabamento_value, 'model_dump'):
+                item_dict['acabamento'] = acabamento_value.model_dump(exclude_none=True)
+            elif isinstance(acabamento_value, dict):
+                item_dict['acabamento'] = Acabamento(**acabamento_value).model_dump(exclude_none=True)
         items_data.append(item_dict)
     return json.dumps(items_data, ensure_ascii=False)
 
@@ -34,22 +64,66 @@ def json_string_to_items(items_json: str) -> List[ItemPedido]:
     
     try:
         items_data = json.loads(items_json)
-        items = []
+        normalized_items: List[ItemPedido] = []
         for item_data in items_data:
-            # Criar objeto Acabamento
-            acabamento_data = item_data.get('acabamento', {})
-            acabamento = Acabamento(**acabamento_data)
-            
-            # Criar objeto ItemPedido
-            item = ItemPedido(
-                **{k: v for k, v in item_data.items() if k != 'acabamento'},
-                acabamento=acabamento
-            )
-            items.append(item)
-        return items
+            acabamento = normalize_acabamento(item_data.get('acabamento'))
+            payload = {k: v for k, v in item_data.items() if k != 'acabamento'}
+            normalized_items.append(ItemPedido(**payload, acabamento=acabamento))
+        return normalized_items
     except (json.JSONDecodeError, Exception) as e:
         print(f"Erro ao converter JSON para items: {e}")
         return []
+
+
+def ensure_pedido_defaults(pedido_data: dict) -> dict:
+    """Garante campos obrigatórios com valores padrão."""
+    numero = pedido_data.get('numero')
+    if not numero:
+        numero = str(int(datetime.utcnow().timestamp()))
+    pedido_data['numero'] = numero
+
+    data_entrada = pedido_data.get('data_entrada') or datetime.utcnow().date().isoformat()
+    pedido_data['data_entrada'] = data_entrada
+
+    data_entrega = pedido_data.get('data_entrega') or data_entrada
+    pedido_data['data_entrega'] = data_entrega
+
+    forma_envio_id = pedido_data.get('forma_envio_id')
+    if forma_envio_id is None or forma_envio_id == '':
+        forma_envio_id = 0
+    pedido_data['forma_envio_id'] = int(forma_envio_id)
+
+    pedido_data.setdefault('valor_total', '0.00')
+    pedido_data.setdefault('valor_itens', '0.00')
+    pedido_data.setdefault('valor_frete', '0.00')
+    pedido_data.setdefault('tipo_pagamento', '')
+    pedido_data.setdefault('cliente', '')
+    pedido_data.setdefault('telefone_cliente', '')
+
+    cidade = pedido_data.get('cidade_cliente') or ''
+    estado = (pedido_data.pop('estado_cliente', None) or '').strip()
+    pedido_data['cidade_cliente'] = encode_city_state(cidade, estado)
+
+    return pedido_data
+
+
+def encode_city_state(cidade: str, estado: Optional[str]) -> str:
+    base_cidade, _ = decode_city_state(cidade)
+    estado_normalized = (estado or '').strip()
+    if estado_normalized:
+        return f"{base_cidade}{STATE_SEPARATOR}{estado_normalized}"
+    return base_cidade
+
+
+def decode_city_state(value: Optional[str]) -> tuple[str, Optional[str]]:
+    if not value:
+        return '', None
+    if STATE_SEPARATOR in value:
+        cidade, estado = value.split(STATE_SEPARATOR, 1)
+        cidade = cidade.strip()
+        estado = estado.strip() or None
+        return cidade, estado
+    return value.strip(), None
 
 @router.post("/", response_model=PedidoResponse)
 def criar_pedido(pedido: PedidoCreate, session: Session = Depends(get_session)):
@@ -59,14 +133,17 @@ def criar_pedido(pedido: PedidoCreate, session: Session = Depends(get_session)):
     """
     try:
         # Converter o pedido para dict e preparar para o banco
-        pedido_data = pedido.model_dump()
-        
+        pedido_data = pedido.model_dump(exclude_unset=True)
+        items = pedido_data.pop('items', [])
+        # Normalizar campos obrigatórios
+        pedido_data = ensure_pedido_defaults(pedido_data)
+
         # Converter items para JSON string para armazenar no banco
-        items_json = items_to_json_string(pedido_data['items'])
+        items_json = items_to_json_string(items)
         
         # Criar o pedido no banco
         db_pedido = Pedido(
-            **{k: v for k, v in pedido_data.items() if k != 'items'},
+            **pedido_data,
             items=items_json,
             data_criacao=datetime.utcnow(),
             ultima_atualizacao=datetime.utcnow()
@@ -78,7 +155,10 @@ def criar_pedido(pedido: PedidoCreate, session: Session = Depends(get_session)):
         
         # Converter de volta para response
         pedido_dict = db_pedido.model_dump()
-        pedido_dict['items'] = pedido.items  # Usar os items originais
+        cidade, estado = decode_city_state(pedido_dict.get('cidade_cliente'))
+        pedido_dict['cidade_cliente'] = cidade
+        pedido_dict['estado_cliente'] = estado
+        pedido_dict['items'] = json_string_to_items(db_pedido.items or "[]")
         return PedidoResponse(**pedido_dict)
         
     except Exception as e:
@@ -97,8 +177,11 @@ def listar_pedidos(session: Session = Depends(get_session)):
         response_pedidos = []
         for pedido in pedidos:
             items = json_string_to_items(pedido.items)
-            
+
             pedido_dict = pedido.model_dump()
+            cidade, estado = decode_city_state(pedido_dict.get('cidade_cliente'))
+            pedido_dict['cidade_cliente'] = cidade
+            pedido_dict['estado_cliente'] = estado
             pedido_dict['items'] = items
             response_pedido = PedidoResponse(**pedido_dict)
             response_pedidos.append(response_pedido)
@@ -120,8 +203,11 @@ def obter_pedido(pedido_id: int, session: Session = Depends(get_session)):
         
         # Converter items de JSON string para objetos
         items = json_string_to_items(pedido.items)
-        
+
         pedido_dict = pedido.model_dump()
+        cidade, estado = decode_city_state(pedido_dict.get('cidade_cliente'))
+        pedido_dict['cidade_cliente'] = cidade
+        pedido_dict['estado_cliente'] = estado
         pedido_dict['items'] = items
         return PedidoResponse(**pedido_dict)
         
@@ -147,6 +233,24 @@ def atualizar_pedido(pedido_id: int, pedido_update: PedidoUpdate, session: Sessi
         if 'items' in update_data and update_data['items'] is not None:
             update_data['items'] = items_to_json_string(update_data['items'])
         
+        if 'data_entrega' in update_data and not update_data['data_entrega']:
+            # Garantir que data_entrega nunca fique vazia devido à restrição do banco
+            update_data['data_entrega'] = db_pedido.data_entrada
+
+        if 'forma_envio_id' in update_data and update_data['forma_envio_id'] is None:
+            update_data['forma_envio_id'] = db_pedido.forma_envio_id or 0
+
+        if 'numero' in update_data and not update_data['numero']:
+            update_data['numero'] = db_pedido.numero or str(int(datetime.utcnow().timestamp()))
+
+        estado_update = (update_data.pop('estado_cliente', None) or '').strip()
+        if 'cidade_cliente' in update_data or estado_update:
+            cidade_atual, estado_atual = decode_city_state(db_pedido.cidade_cliente)
+            nova_cidade = update_data.get('cidade_cliente', cidade_atual) or ''
+            nova_cidade, _ = decode_city_state(nova_cidade)
+            estado_final = estado_update if estado_update else estado_atual
+            update_data['cidade_cliente'] = encode_city_state(nova_cidade, estado_final)
+
         # Atualizar timestamp
         update_data['ultima_atualizacao'] = datetime.utcnow()
         
@@ -159,9 +263,12 @@ def atualizar_pedido(pedido_id: int, pedido_update: PedidoUpdate, session: Sessi
         session.refresh(db_pedido)
         
         # Converter de volta para response
-        items = json_string_to_items(db_pedido.items)
+        items = json_string_to_items(db_pedido.items or "[]")
         
         pedido_dict = db_pedido.model_dump()
+        cidade, estado = decode_city_state(pedido_dict.get('cidade_cliente'))
+        pedido_dict['cidade_cliente'] = cidade
+        pedido_dict['estado_cliente'] = estado
         pedido_dict['items'] = items
         return PedidoResponse(**pedido_dict)
         
@@ -209,8 +316,11 @@ def listar_pedidos_por_status(status: str, session: Session = Depends(get_sessio
         response_pedidos = []
         for pedido in pedidos:
             items = json_string_to_items(pedido.items)
-            
+
             pedido_dict = pedido.model_dump()
+            cidade, estado = decode_city_state(pedido_dict.get('cidade_cliente'))
+            pedido_dict['cidade_cliente'] = cidade
+            pedido_dict['estado_cliente'] = estado
             pedido_dict['items'] = items
             response_pedido = PedidoResponse(**pedido_dict)
             response_pedidos.append(response_pedido)
