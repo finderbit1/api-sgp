@@ -109,6 +109,8 @@ class PedidoBase(SQLModel):
     sublimacao: bool = False
     costura: bool = False
     expedicao: bool = False
+    sublimacao_maquina: Optional[str] = None
+    sublimacao_data_impressao: Optional[str] = None
 
 
 class PedidoCreate(PedidoBase):
@@ -147,6 +149,8 @@ class PedidoUpdate(SQLModel):
     sublimacao: Optional[bool] = None
     costura: Optional[bool] = None
     expedicao: Optional[bool] = None
+    sublimacao_maquina: Optional[str] = None
+    sublimacao_data_impressao: Optional[str] = None
 
     # Items
     items: Optional[List[ItemPedido]] = None

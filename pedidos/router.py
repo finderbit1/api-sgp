@@ -13,18 +13,26 @@ router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 STATE_SEPARATOR = "||"
 
 
-def ensure_conferencia_column() -> None:
+def ensure_order_columns() -> None:
+    required = (
+        ('conferencia', "ALTER TABLE pedidos ADD COLUMN conferencia BOOLEAN DEFAULT 0"),
+        ('sublimacao_maquina', "ALTER TABLE pedidos ADD COLUMN sublimacao_maquina TEXT"),
+        ('sublimacao_data_impressao', "ALTER TABLE pedidos ADD COLUMN sublimacao_data_impressao TEXT"),
+    )
+
     try:
         with engine.begin() as conn:
-            columns = conn.execute(text("PRAGMA table_info(pedidos)")).fetchall()
-            if not any(col[1] == 'conferencia' for col in columns):
-                conn.execute(text("ALTER TABLE pedidos ADD COLUMN conferencia BOOLEAN DEFAULT 0"))
+            columns = conn.execute(text("PRAGMA table_info(pedidos)"))
+            columns = columns.fetchall()
+            existing = {col[1] for col in columns}
+            for name, ddl in required:
+                if name not in existing:
+                    conn.execute(text(ddl))
     except Exception as exc:
-        # Direitos de escrita podem não estar disponíveis em alguns ambientes; registrar e seguir.
-        print(f"[pedidos] aviso ao garantir coluna conferencia: {exc}")
+        print(f"[pedidos] aviso ao garantir colunas obrigatórias: {exc}")
 
 
-ensure_conferencia_column()
+ensure_order_columns()
 
 def normalize_acabamento(acabamento_value: Any) -> Optional[Acabamento]:
     if isinstance(acabamento_value, Acabamento):
